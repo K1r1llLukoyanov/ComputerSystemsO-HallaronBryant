@@ -1,0 +1,26 @@
+Simple computer model:
+    * CPU - executes instruction.
+    * Memory system - holds CPU instruction and program data.
+
+In simple model, the memory system is array of bytes, and CPU can access each memory location in a constant amount of time.
+In practise, a memory system is a hierarchy of storage devices with different capacities, costs, and access time. CPU registers 
+hold the most frequently used data. Small, fast cache memories nearby the CPU acts as staging areas for a subset of the data and
+instructions stored in the relatively slow main memory. The main memory stages data stored on large, slow disks, which in turn
+often serve as staging areas for data on the disks or tapes of other machines connected by networks.
+
+Memory hierarchy work because well-written programs tend to access the storage at any particular level more frequently than they
+access storage at the next lower level. So the storage at the next level can be slower, and thus larger and cheaper per bit. The
+overall effect is a large pool of memory that costs as the cheap storage neat the bottom of the hierarchy but that serves data
+to programs at the rate of the fast storage near the top of hierarchy.
+
+If you understand how the system moves data up and down the memory hierarchy, then you can write your application programs so that
+their data items are stored higher in the hierarchy, where the CPU can access them more quickly.
+
+The idea centers around a fundamental property of the computer programs known as locality. Program with good locality tend to access
+the same set of data items over and over again, or they tend to access sets of nearby data items. Programs with good locality tend to
+access more data items for upper level of the memory hierarchy than programs with poor locality, and thus run faster.
+
+Basic storage technologies:
+    * SRAM
+    * DRAM
+    * ROM
