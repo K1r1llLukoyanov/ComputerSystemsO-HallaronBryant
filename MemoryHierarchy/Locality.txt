@@ -1,0 +1,169 @@
+    Well-written computer programs tend to exhibit good locality. That is, they tend to reference
+    data items that are near other recently referenced data items or that were recently referenced
+    themselves. This tendency, known as the principle of locality, is an enduring concept that has
+    enormous impact on the design and performance of hardware and software and systems.
+
+
+    Locality is typically described as having two distinct forms: temporal locality and spatial locality.
+    In a program with good temporal locality, a memory location that is referenced once is likely to be
+    referenced again multiple times in the near future. In a program with good spatial locality, if a memory
+    location is referenced once, then the program is likely to reference a nearby memory location in the near
+    future.
+    
+    In general programs with good locality run faster than programs with poor locality. All levels of modern
+    computer systems from hardware to operating systems to application programs are designed to exploit locality.
+    At hardware level, the principle of locality allows computers designers to speed up main memory accesses by
+    introducing small fast memories known as cache memories that hold blocks of the most recently referenced
+    istructions and data items. At the operating system level, the principle of locality allows the system to use
+    main memory as a cache of the most recently referenced chunks of the virtual address space. Similarly, the
+    operating system uses the main memory as a cache of the most referenced blocks from disk. The principle of
+    locality playes crucial role in the design of application programs. For example, Web browsers exploit temporal
+    locality by caching referenced documents on a local disk. High-volume Web servers hold recently requested
+    documents in front-end disk caches that satisfy requests for these documents without requering any intervention
+    from the server.
+
+    
+    Program with good locality (6.17):
+    int sumvec(int v[N])
+    {
+        int i, sum = 0;
+        for(i = 0; i < N; i++)
+            sum += v[i];
+        return sum;
+    }
+    Vector elements are accessed in the same order that they are stored in memory.
+
+    
+    
+    Locality of References to Program Data
+
+    In the example 6.17 function sumvec sums the elements of a vector. Does this function have good locality?
+In this example, the sum variable is referenced once in each loop iteration, and thus there is good temporal
+locality with respect to sum.
+    In the example 6.17 the elements of a vector are read sequentially, one after the other, in the order they
+are stored in memory. Thus, with respect to varaible v, the function has good spatial locality but poor temporal
+locality since vector element is accessed exactly once. Since the function has either good spatial or temporal
+locality with respect to each variable in the loop body, we can conclude that sumvec function enjoys good locality.
+    A function such as sumvec that visits each element of a vector sequentially is said to have a stride-1 reference
+pattern(with respect to the element size) or sequential reference pattern. Stride-1 reference patterns are a common
+and important source of spatial locality in programs. In general, as the stride increases, the spatial licality
+decreases.
+    Stride is also an important issue for programs that reference multidimensional arrays. Consider this example:
+    
+    Example 6.18:
+
+    int sumarrayrows(int a[M][N])
+    {
+        int i, j, sum = 0;
+        for(i = 0; i < M; i++)
+            for(j = 0; j < N; j++)
+                sum += a[i][j];
+        return sum;
+    }
+
+    In this example function sumarrayrows sum the elements of a 2-dimensional array. The doubly nested loop reads
+the elements of the array in row-major order. The inner loop reads the elements of the first row, then the second
+row, and so on. The sumarrayrows function enjoys good spatial locality because it references the array in the same
+row-major order that the array is stored. The result is nice stride-1 reference pattern with excellent spatial locality.
+
+
+    Locality of Instruction Fetches
+    
+    Since program instructions are stored in memory and must be fetched (read) by the CPU, we can also evaluate the locality
+of program with respect to its instruction fetches.
+    An important property of code that distinguishes if from program data is that it is rarely modified at run tume. While
+a program is executing, the CPU reads instructions from memory. The CPU rarely overwrites and modifies these instruction.
+
+
+    Summary of locality:
+
+    Simple rules for qualitatively evaluating the locality in a program:
+
+  * Programs that repeatedly reference the same variables enjoys good temporal locality.
+  * For programs with stride-k reference patterns, the smaller the stride, the better the spatial locality. Programs
+    with stride-1 reference patterns have good spatial locality. Programs that hop around memory with large strides have
+    poor spatial locality.
+  * Loops have good temporal and spatial locality with respect to instruction fetches. The smaller the loop body and the
+    greater the number of loop iterations, the better the locality.
+
+    
+    
+    Practice Problem 6.7 (solution page 698):
+    
+    Permute the loops in the following function so that it scans the three-dimensional
+    array a with a stride-1 reference pattern.
+    
+
+1   int productarray3d(int a[N][N][N])
+2   {
+3       int i, j, k, product = 1;
+4
+5       for (i = N-1; i >= 0; i--) {
+6           for (j = N-1; j >= 0; j--) {
+7               for (k = N-1; k >= 0; k--) {
+8                   product *= a[i][j][k];
+9               }
+10          }
+11      }
+12      return product;
+13 }
+
+    Practice Problem 6.8 (solution page 699):
+
+    The three functions in Figure 6.20 perform the same operation with varying de-
+    grees of spatial locality. Rank-order the functions with respect to the spatial local-
+    ity enjoyed by each. Explain how you arrived at your ranking.
+    
+a)  An array of structs
+1   #define N 1000
+2
+3   typedef struct {
+4       int vel[3];
+5       int acc[3];
+6   } point;
+7
+8   point p[N];
+
+(b) The clear1 function
+1   void clear1(point *p, int n)
+2   {
+3       int i, j;
+4
+5       for (i = 0; i < n; i++) {
+6           for (j = 0; j < 3; j++)
+7               p[i].vel[j] = 0;
+8           for (j = 0; j < 3; j++)
+9               p[i].acc[j] = 0;
+10      }
+11  }
+
+(c) The clear2 function
+1   void clear2(point *p, int n)
+2   {
+3       int i, j;
+4
+5       for (i = 0; i < n; i++) {
+6           for (j = 0; j < 3; j++) {
+7               p[i].vel[j] = 0;
+8               p[i].acc[j] = 0;
+9           }
+10      }
+11  }
+
+(d) The clear3 function
+1   void clear3(point *p, int n)
+2   {
+3       int i, j;
+4
+5       for (j = 0; j < 3; j++) {
+6           for (i = 0; i < n; i++)
+7               p[i].vel[j] = 0;
+8           for (i = 0; i < n; i++)
+9               p[i].acc[j] = 0;
+10      }
+11  }
+
+    Answer:
+        1) (b) - fastest
+        2) (c)
+        3) (d) - slowest
