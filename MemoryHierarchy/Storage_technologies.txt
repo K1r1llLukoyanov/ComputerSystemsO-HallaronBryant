@@ -285,4 +285,77 @@ devices.
 
     Accessing Disks
 
-        
+    The CPU issues commands to I/O devices using a technique called memory-mapped I/O. In system with memory-mapped I/O,
+a block of addresses in the address space is reserved for communication with I/O devices. Each of these addresses space
+is known as an I/O port. Each device is associated with (or mapped to) one or more ports when it is attached to the bus.
+    As simple example, suppose that the disk controller is mapped to port 0xa0. Then the CPU might initiate a disk read
+by executing store instructions to address 0xa0.
+    After the disk contoller receives the read command from the CPU, it translates the logical block number to a sector
+address, reads the contents of the sector and transfer the contents directly to main memory, without any intervention
+from the CPU. This process, whereby a device performs a read and write bus transaction on its own, without any involvement
+of the CPU, is known, as direct memory acces (DMA). The transfer of data is known as a DMA transfer.
+    After DMA transfer is complete, disk controller nitifies the CPU by sending interrupt signal to the CPU. 
+
+    
+    Solid State Disks
+
+    A solid state disk (SSD) is a storage technology, based on flash memory, that in some situations is an attractive altenate
+to the conventional rotating disks. An SSD package consists of one or more flash memory chips, which replace the mechanical
+drive in a conventional rotating disk, and a flash translation layer, which is hardware/firmware device that plays the same
+role as disk controller, translating requests for logical blocks into accesses of the underlying physical device.
+    Reading from SSD is faster than writing. The differences between random reading and writing performance is caused by a
+fundamental property of the underlying flash memory. For example, flash memory consists of a sequence of B blocks, where each
+block consist of P pages. Typically, pages are 512 bytes to 4 KB in size, and block consist of 32-128 pages, with lotal block
+size randing from 16KB to 512 KB. Data are read and written in units of pages. A page can be written only after the entire
+block to which it belongs has been erased (bits are set to 1). However, once the block is erased, each page in the block can 
+be written once with no further erasing. A block wears out after roughly 100000 repeated writes. Once the block wears out, it
+can no longer be used.
+    Random writes are slower for 2 reasons. First, erasing a block takes a relatively long time, on the order of 1 ms. Second,
+if a write operation attempts to modify a page p that contains existing data (i.e, not all ones), then any pages in the same
+block with useful data must be copied to a new (erased) block before the write to page p can occur. manufacturers have developed
+sophisticated logic in the flash translation layer that attempts to amortize the high cost of erasing blocks and to minimize the
+number of internal copies on writes, but it unlikely that random writing will ever perform as well as reading.
+    SSDs have a number of advantages over rotating disks. They are built of semiconductors, with no moving parts, and thus have
+much faster random access time than rotating disks, use less power, and are more rugged. However, there are some disadvantages.
+First, because flash blocks wear out after repeated writes, SSDs have the potential to wear out as well. Wear-leveling logic in 
+the flash translation layer attempts to maximize the lifetime of each block by spreading erasures evenly across all blocks.
+In practice, the wear-leveling logic is so good that it takes many years for SSDs to wear out. Second, SSDs are more expensive 
+per byte than rotating disks, and thus the typical storage capacities are significantly less than rotating disks.
+
+
+Practice Problem 6.5 (sol. 698):
+
+As we have seen, a potential drawback of SSDs is that the underlying flash memory
+can wear out. Intel guarantees about 128 petabytes (128 × 10^15 bytes) of writes 
+before the drive wears out. Given this assumption, estimate the lifetime (in years) 
+of this SSD for the following workloads: 
+
+A.  Worst case for sequential writes: The SSD is written to continuously at a rate
+    of 470 MB/s (the average sequential write throughput of the device).
+    
+    Answer: (128*10^15)/(470*60*60*24*365*10^6)
+
+B.  Worst case for random writes: The SSD is written to continuously at a rate
+    of 303 MB/s (the average random write throughput of the device).
+
+    Answer: (128*10^15)/(303*60*60*24*365*10^6)
+
+C.  Average case: The SSD is written to at a rate of 20 GB/day (the average
+    daily write rate assumed by some computer manufacturers in their mobile
+    computer workload simulations).
+    
+    Answer: 128*10^15/(20*365*10^9)
+
+
+    Storage Technology Trends
+
+    Different storage Technologies have different price and performance trade-offs.
+SRAM is somewhat faster than DRAM, DRAM is much faster than disk. On other hand, fast
+storage is always more expensive than slower storage. SRAM cost more per byte than DRAM.
+DRAM costs much more per byte than. SSDs split the differences between DRAM and rotating
+disk.
+    The prices and performance properties of different storage technoligies are chanching
+at dramatically different rates.
+    It is much easier to increase density, than decrease access time.
+    DRAM and disk performance are lagging behind CPU performance. The gap between DRAM and
+disk performance and CPU performance is actually widening.
