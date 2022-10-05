@@ -155,3 +155,134 @@ digital cameras, cell phones, and music players, as well as laptop, desktop, and
 stored in ROM. Some systems provide small set of primitive input and output functions in firmware - for example, a PC's
 BIOS (basic input/output system) routines. Complicated devices such as grapics cards cand disk drive contollers also rely
 on firmware to translate I/O (input/output) requests from the CPU.
+
+
+    Accessing Main Memory
+
+Data flows back and forth between the processor and the DRAM main memory over shared electrical conduits called buses.
+Each transfer of data between the CPU and memory is accomplished with a series of steps called a bus transaction. A read
+transaction transfer data from the main memory to CPU, write transaction transfer data from CPU to the main memory.
+    A bus is collection of parallel wires that address, data and control signals. Depending on the particular bus design,
+data and address signals can share the same set of wires or can use different sets. Also, more than two devides can share
+the same bus. The control wires carry signals that synchronize the transaction and identify what kind of transaction is
+currently being performed.
+    In example computer, there are CPU chip and the DRAM, their buses: system bus and memory bus connected via I/O bridge.
+The I/O bridge translates the electrical signals of the system bus into the electric signals of the memory bus. I/O bridge
+also connectes the system bus and memory bus to an I/O bus that is shared by I/O devices such as disks and graphics cards.
+    Consider what happens when the CPU perform a load operation such as
+
+    movq A, %rax
+
+where the contents of address A are loaded into register %rax. Circuitry on the CPU chip called bus interface interface
+initiates a read transaction on the bus. The read transaction consists of three steps. First, the CPU places the address A
+on the system bus. The I/O bridge passes the signal along to the memory bus. Next, the main memory senses the address signal
+on the memory bus, reads the address from the memory bus, fetches the data from the DRAM, and writes the data to the memory bus.
+The I/O bridge translates the memory bus signal into a system bus signal and passes it along the system bus. Finally, the CPU
+senses the data on the system bus, reads the data from the bus, and copies the data into register %rax.
+    Conversary, when the CPU performs a store operation such as
+
+    movq %rax, A
+where the content of register %rax are written to address A, the CPU initiates a write transaction. First the CPU places the
+address on the system bus. The memory reads the address from the memory bus and waits for the data to arrive. Next, the CPU
+copies the data in %rax to the system bus. Finally, the main memory reads data from the memory bus and stores the bits in the
+DRAM.
+    
+    
+    
+    Disk storage
+
+Disks are workhorse storage devices that hold enormous amounts of data, on the order of hundres and thausands of gigabytes,
+as opposed to the hundred and thausands megabytes in a RAM-based memory. However, it takes on the order of milliseconds to
+read information from a disk, a hundred thausands times longer than from DRAM and million times longer than from SRAM.
+
+    Disk geometry
+
+Disks are constructed from platters. Each platter consists of two sides, or surfaces, that coated with magnetic recording
+material. A rotating spindle in the center of the platter spins the platter at fixed rotating rate, typically between 5400
+and 15000 revolutions per minute (RPM). A disk contain one or more of these platters encased in a sealed container.
+    Each surface of platter consists of a collection of concentric rings called tracks. Each track is partitioned into a
+collection of sectors. Each sectors contains an equal number of data bits(typically 512 bytes) encoded in the magnetic
+material on the sector. Sectors are separated by gaps where no data bits are stored. Gaps store formatting bits that identify
+sectors.
+
+    Disk Capacity
+
+The maximum number of bits that can be recorded by a disk is known as its maximum capacity, or simply capacity. Disk capacity
+is determined by the following technology factors:
+
+  * Recording density(bits/in): The number of bits that can be squeezed into a 1-inch segment of a track.
+  * Track sensity (tracks/in): The number of tracks that can be squeezed into 1-inch segment of the radius
+    extending from the center of the platter.
+  * Areal density (bits/in^2). The factor of the reconding density and the track density.
+
+
+    Disk operation
+
+Disks read and write bits stored on the magnetic surface using a read/write head connected to the end of an actuator arm. By
+moving the arm back and forth along its radial axis, the drive can position the head over any track on the surface. This
+mechanical motion is known as a seek. Once the head is positioned over the desired track, then, as each bit on the track
+passes underneath, the head arm can either sense the value of the bit (read the bit) or alter the value of bit (write bit).
+Disks with multiple platters platters have a separate heads for each surface. At any point in time, all head are positioned
+on the same cylinder.
+    The read/write head at the end of the arm flies on this cushion of air over the disk surface at a height of about 0.1
+microns and speed of about 80 km/h.
+    The access time for a sector has three main components seek time, ratational latency, and transfer time:
+    
+  * Seek time. The time required to move the arm is called the seek time. The seek time depends on previous position of
+    the head and the speed that the arm moves across the surface. The average seek time in modern drives is about 3-9 ms.
+  
+  * Rotational latency. Once the head is in position over the track, the drive waits for the first bit of the target sector
+    to pass under the head. The performace depends on the position of the surface when head arrives at the target track and
+    the rotational speed of the disk. In the worst case, the head just misses the target sector and waits for the disk to
+    make a full rotation. Thus, the maximum rotational latency, in seconds is given by
+
+    T(max) = 1/RPM * (60 secs/1 min).
+
+  * Transfer time. When the first bit of the target sector is under the head, the drive can begin to read or write the contents
+    of the sector. The transfer time for one sector depends on the rotational speed and the number of sectors per track. Thus,
+    we can roughly estimate the average transfer time for one sector in seconds.
+
+    T(avg) = 1/RPM * (1/(average#sectors/track)) * (60 secs/1 min)
+    
+
+    T(access) = T(avg seek) + T(avg rotation) + T(avg transfer)
+
+
+    * The time to access the 512 bytes in disk sector is dominated by the seek time and rotation latency.
+
+
+    Logical Disk Blocks
+
+    To hide disk drive complexity from operating system, modern disk presents a simpler view of their geometry as a sequence
+of B sector-size logical blocks, numbered 0, 1, 2, ..., B-1. A small hardware/firmware device in the disk package, called
+the disk controller, maintains the mapping between logical block number and actual (physics) disk sector.
+    When the operating system wants to perform I/O operation such as reading a disk sector into main memory, it sends a
+command to the disk contoller asking it to read a particular logical block number. Firmware on the contoller performs a
+fast table lookup that translates the logical block number into a (surface, track, sector) triple that uniquely identifies
+the correspoding physical sector.
+
+
+    Connecting I/O devices.
+
+    Input/Ouput (I/O) devices such as graphics cards, monitors, mice, keyboards, and disks are connected to the CPU and main
+memory using the I/O bus. Unlike the system bus and memory buses, which are CPU-specific, I/O buses are designed to be
+independent of the underlying CPU.
+    Although the I/O bus is slower than the system and memory buses, it can accommodate a wide variety of third-party I/O
+devices.
+
+  * A Universal Serial Bus (USB) controller is a conduit for devices attached to a USB bus, which is wildly popular
+    standard for connecting a variety of peripheral I/O devices, including keyboards, mice, modems, digital cameras,
+    game controllers, printers, external disk drives. USB 3.0 buses have a maximum bandwidth of 625 MB/s. USB 3.1
+    buses have a maximum bandwidth 1250 MB/s.
+  
+  * A graphics card (or adapter) contains hardware and software logic that is responsible for painting the pixels
+    on the display monitor on behalf of the CPU.
+
+  * A host bus adapter that connects one or more disks to the I/O bus using a communication protocol defined by a
+    particular bus interface. The two most popular such interfaces for disks are SCSI ("squzzy") and SATA. SCSI disks
+    are typically faster and more expensive than SATA drives and can support mutiple disks.
+
+
+    Accessing Disks
+
+        
