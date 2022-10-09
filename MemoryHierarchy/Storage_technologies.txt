@@ -94,9 +94,9 @@ of bits needed to address the rows or columns of the array.
 
 Organization            r           c           br          bc          max(br, bc)
 16x1                    4           4           2           2           2
-16x4                    8           8           3           3           3
-128x8                   32          32          5           5           5
-1024x4                  64          64          6           6           6
+16x4                    4           4           2           2           2
+128x8                   16          8           4           3           4
+1024x4                  32          32          5           5           5
 
 
     Enchanced DRAMs
@@ -331,20 +331,20 @@ before the drive wears out. Given this assumption, estimate the lifetime (in yea
 of this SSD for the following workloads: 
 
 A.  Worst case for sequential writes: The SSD is written to continuously at a rate
-    of 470 MB/s (the average sequential write throughput of the device).
+    of 512 MB/s (the average sequential write throughput of the device).
     
-    Answer: (128*10^15)/(470*60*60*24*365*10^6)
+    Answer: (128*10^9)/(512*60*60*24*365) = 7 years
 
 B.  Worst case for random writes: The SSD is written to continuously at a rate
-    of 303 MB/s (the average random write throughput of the device).
+    of 205 MB/s (the average random write throughput of the device).
 
-    Answer: (128*10^15)/(303*60*60*24*365*10^6)
+    Answer: (128*10^15)/(205*60*60*24*365*10^6) = 19 years
 
 C.  Average case: The SSD is written to at a rate of 20 GB/day (the average
     daily write rate assumed by some computer manufacturers in their mobile
     computer workload simulations).
     
-    Answer: 128*10^15/(20*365*10^9)
+    Answer: 128*10^15/(20*365*10^9) = 6,912 years
 
 
     Storage Technology Trends
