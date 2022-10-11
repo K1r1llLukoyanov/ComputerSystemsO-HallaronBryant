@@ -1,0 +1,209 @@
+        Writing Cache-Friendly Code
+
+    Program with better locality tend to have lower miss rates, and programs with lower miss rates will tend
+    to run faster than programs with higher miss rates. Thus, good programmers should always try to write code
+    that is cache friendly, in sense that it has good locality. Here is the basic approach we use to try
+    to ensure that out code is cache friendly.
+
+    1.  Make the common case go fast. Programs often spend most of their time in a few code function. These
+        functions often spend most of their time in a few loops. So focus on the inner loops of the code
+        functions and ignore the rest.
+
+    2.  Minimize the number of cache misses in each inner loop. All other things being equal, such as the total
+        number of loads and stores, loops with better miss rates will run faster. 
+
+        1   int sumvec(int v[N])
+        2   {
+        3       int i, sum = 0;
+        4
+        5       for (i = 0; i < N; i++)
+        6           sum += v[i];
+        7       return sum;
+        8   }
+
+    
+    Is this function cache friendly? First, notice that there is good temporal locality in the loop body with respect
+    to the local variables i and sum. In fact, because these are local variables, any resonable optimizing compiler
+    will cache them in the register file, the highest level of the memory hierarchy. Now consider the stride-1
+    reference to vector v. In general, if a cache has a block size of B bytes, then stride-k reference pattern
+    results in an average of min(1, word_size*k)/B) misses per loop iteration. This is minimized for k=1, so
+    the stride-1 reference to v are indeed cache friendly. For example, suppose that v is block aligned, words
+    are 4 bytes, cache blocks are 4 words, and the cache is initially empty (a code cache). Then, regardless
+    of the cache organization, the reference to v will result in the following pattern of hits and misses.
+    
+    v[i]                                    i=0     i=1     i=2     i=3     i=4     i=5     i=6     i=7
+    Access order, [h]it or [m]iss           1[m]    2[h]    3[h]    4[h]    5[m]    6[h]    7[h]    8[h]
+
+    In this example, the reference to v[0] misses and the corresponding block, which contain v[0]-v[3],
+    is loaded into the cache from memory. Thus, the next three references are all hits. The reference to v[4]
+    causes another miss as a new block is loaded into the cache, the next three reference hits, and so on. In
+    general, three out of four reference will hit, which is the best we can do in this case with a cold cache.
+
+    To summarize, our simple sumvec example illustrates two imporant points about writing cache-friendly code:
+    * Repeated reference to local variables are good because the compiler can cache them in the register files
+      (temporal locality).
+    * Stride-1 reference patterns are good because caches at all levels of the memory hierarchy store data
+      contiguous blocks (spacial locality)
+
+    Spatial locality is especially important in programs that operate on multi-
+    dimensional arrays.
+    
+    1   int sumarrayrows(int a[M][N])
+    2   {
+    3       int i, j, sum = 0;
+    4
+    5       for (i = 0; i < M; i++)
+    6           for (j = 0; j < N; j++)
+    7               sum += a[i][j];
+    8       return sum;
+    9   }
+
+    Then the reference to the array a will result in the following pattern hits and misses:
+    
+    a[i][j]         j=0     j=1     j=2     j=3     j=4     j=5     j=6     j=7
+    i=0             1[m]    2[h]    3[h]    4[h]    5[m]    6[h]    7[h]    8[h]
+    i=1             9[m]    10[h]   11[h]   12[h]   13[m]   14[h]   15[h]   16[h]             
+    i=2             17[m]   18[h]   19[h]   20[h]   21[m]   22[h]   23[h]   24[h]
+    i=3             25[m]   26[h]   27[h]   28[h]   29[m]   30[h]   31[h]   32[h]
+
+
+    Practice Problem 6.17 (solution page 701)
+
+    Transposing the rows and columns of a matrix is an important problem in signal
+    processing and scientific computing applications. It is also interesting from a local-
+    ity point of view because its reference pattern is both row-wise and column-wise.
+    For example, consider the following transpose routine:
+
+    1   typedef int array[2][2];
+    2
+    3   void transpose1(array dst, array src)
+    4   {
+    5       int i, j;
+    6
+    7       for (i = 0; i < 2; i++) {
+    8           for (j = 0; j < 2; j++) {
+    9               dst[j][i] = src[i][j];
+    10          }
+    11      }
+    12  }
+
+    Assume this code runs on a machine with the following properties:
+
+    * sizeof(int) = 4.
+    * The src array starts at address 0 and the dst array starts at address 16
+      (decimal).
+    * There is a single L1 data cache that is direct-mapped, write-through, and write-
+      allocate, with a block size of 8 bytes.
+    * The cache has a total size of 16 data bytes and the cache is initially empty.
+    * Accesses to the src and dst arrays are the only sources of read and write
+      misses, respectively.
+
+    A.  For each row and col, indicate whether the access to src[row][col] and
+        dst[row][col] is a hit (h) or a miss (m). For example, reading src[0][0]
+        is a miss and writing dst[0][0] is also a miss.
+
+                dst array                   src array      
+        ----------------------      -----------------------
+                Col. 0  Col. 1              Col. 0  Col. 1
+        Row 0   m       m                   m       m
+        Row 1   m       m                   m       h
+    
+    B.  Repeat the problem for a cache with 32 data bytes.
+
+                dst array                   src array      
+        ----------------------      -----------------------
+                Col. 0  Col. 1              Col. 0  Col. 1
+        Row 0   m       h                   m       h
+        Row 1   m       h                   m       h 
+    
+
+    Practice Problem 6.18 (solution page 702)
+    
+    The heart of the recent hit game SimAquarium is a tight loop that calculates the
+    average position of 512 algae. You are evaluating its cache performance on a
+    machine with a 2,048-byte direct-mapped data cache with 32-byte blocks (B = 32).
+    You are given the following definitions:
+
+    1   struct algae_position {
+    2       int x;
+    3       int y;
+    4   };
+    5
+    6   struct algae_position grid[32][32];
+    7   int total_x = 0, total_y = 0;
+    8   int i, j;
+
+    You should also assume the following
+    
+    *   sizeof(int) = 4.
+    *   grid begins at memory address 0.
+    *   The cache is initially empty.
+    *   The only memory accesses are to the entries of the array grid. Variables i, j,
+        total_x, and total_y are stored in registers.
+    
+    Determine the cache performance for the following code:
+
+    1   for (i = 31; i >= 0; i--) {
+    2       for (j = 31; j >= 0; j--) {
+    3           total_x += grid[i][j].x;
+    4       }
+    5   }
+    6
+    7   for (i = 31; i >= 0; i--) {
+    8       for (j = 31; j >= 0; j--) {
+    9           total_y += grid[i][j].y;
+    10      }
+    11  }
+
+    A. What is the total number of reads?
+        2048
+    B.  What is the total number of reads that miss in the cache?
+        512
+    C.  What is the miss rate?
+        1/4 -> 25%
+
+    
+    Practice Problem 6.19 (solution page 702)
+    
+    Given the assumptions of Practice Problem 6.18, determine the cache perfor-
+    mance of the following code:
+    
+    1   for (i = 31; i >= 0; i--){
+    2       for (j = 31; j >= 0; j--) {
+    3           total_x += grid[j][i].x;
+    4           total_y += grid[j][i].y;
+    5       }
+    6   }
+
+    A. What is the total number of reads?
+        2048
+    B. What is the total number of reads that hit in the cache?
+        1024
+    C. What is the hit rate?
+        50%
+    D. What would the miss rate be if the cache were twice as big?
+        25%
+
+    
+    Practice Problem 6.20 (solution page 702)
+
+    Given the assumptions of Practice Problem 6.18, determine the cache perfor-
+    mance of the following code
+    
+    1   for (i = 31; i >= 0; i--){
+    2       for (j = 31; j >= 0; j--) {
+    3           total_x += grid[i][j].x;
+    4           total_y += grid[i][j].y;
+    5       }
+    6   }
+
+    A.  What is the total number of reads? 
+            2048
+    B.  What is the total number of reads that hit in the cache?
+            1536
+    C.  What is the hit rate?
+            75%
+    D.  What would the hit rate be if the cache were twice as big?
+            won't change
+    
+    
