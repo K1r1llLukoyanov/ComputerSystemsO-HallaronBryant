@@ -1,0 +1,171 @@
+        Putting It Together
+
+    The Memory Mountain
+
+    The rate that a program reads data from a memory system is called the read throughput, or sometimes read bandwidth.
+    If a program reads n bytes over a period of s seconds, then the read throughput over that period is n/s, typically
+    expressed in units of megabytes per seconds (MB/s).
+    
+    1   long data[MAXELEMS]; /* The global array we’ll be traversing */
+    2
+    3   /* test - Iterate over first "elems" elements of array "data" with
+    4   * stride of "stride", using 4 x 4 loop unrolling.
+    5   */
+    6   int test(int elems, int stride)
+    7   {
+    8       long i, sx2 = stride*2, sx3 = stride*3, sx4 = stride*4;
+    9       long acc0 = 0, acc1 = 0, acc2 = 0, acc3 = 0;
+    10      long length = elems;
+    11      long limit = length - sx4;
+    12
+    13      /* Combine 4 elements at a time */
+    14      for (i = 0; i < limit; i += sx4) {
+    15          acc0 = acc0 + data[i];
+    16          acc1 = acc1 + data[i+stride];
+    17          acc2 = acc2 + data[i+sx2];
+    18          acc3 = acc3 + data[i+sx3];
+    19      }
+    20
+    21      /* Finish any remaining elements */
+    22      for (; i < length; i++) {
+    23          acc0 = acc0 + data[i];
+    24      }
+    25      return ((acc0 + acc1) + (acc2 + acc3));
+    26  }
+    27
+    28  /* run - Run test(elems, stride) and return read throughput (MB/s).
+    29  * "size" is in bytes, "stride" is in array elements, and Mhz is
+    30  * CPU clock frequency in Mhz.
+    31  */
+    32  double run(int size, int stride, double Mhz)
+    33  {
+    34      double cycles;
+    35      int elems = size / sizeof(double);
+    36
+    37      test(elems, stride); /* Warm up the cache */
+    38      cycles = fcyc2(test, elems, stride, 0); /* Call test(elems,stride) */
+    39      return (size / stride) / (cycles / Mhz); /* Convert cycles to MB/s */
+    40  }
+
+    The test function generates the read sequence by scanning the first elems elements of an array with a stride of stride.
+    To increase the available parallelism in the inner loop, it uses 4x4 unrolling. The run function is a wrapper that calls
+    the test function and returns the measured read throughput. The call to the test in line 37 warms the cache. The fcyc2
+    function in line 38 calls the test function with arguments elems and estimates the running time of the test function
+    in CPU cycles. The size argument to the run function is in units of bytes, while the corresponding elems argument to the
+    test function is in unit of array elements. Line 39 computes MB/s as 10^6 bytes/s, as opposed to 2^20 bytes/s.
+
+    The size and stride arguments to the run function allow us to control the degree of temporal and scatial locality in the
+    resulting read sequence. Smaller values of size result in a smaller working set size, and thus better temporal locality.
+    Smaller values of stride result in better spatial locality. If we call the run function repeatedly with different values
+    of size and stride, then we can recover a fastinating two-dimensional function of read throughput versus temporal and
+    spatial locality. This function is called a memory mountain.
+
+    
+    Rearranging Loops to Increase Spatial Locality
+
+    Consider the problem of multipying a pair of n x n matrices: C = AB. For example, if n = 2, then
+
+        c11 c12         a11 a12     b11 b12
+                    =            x  
+        c21 c22         a21 a22     b21 b22
+
+    where
+
+        c11 = a11*b11 + a12*b21
+        c12 = a11*b12 + a12*b22
+        c21 = a21*b11 + a22*b21
+        c22 = a21*b12 + a22*b22
+
+    A matrix multiply function is usually implemented using three nested loops, which
+    are identified by their indices i, j , and k. If we permute the loops and make some
+    other minor code changes, we can create the six functionally equivalent versions
+    of matrix multiply. Each version is uniquely identified by the ordering of its loops.
+
+
+
+    Six versions of matrix multiply. Each version is uniquely identified by the ordering of its loops.
+
+    (a) Version ijk
+
+    1 for (i = 0; i < n; i++)
+    2   for (j = 0; j < n; j++) {
+    3       sum = 0.0;
+    4       for (k = 0; k < n; k++)
+    5           sum += A[i][k]*B[k][j];
+    6       C[i][j] += sum;
+    7   }
+
+    (b) Version jik
+
+    1   for (j = 0; j < n; j++)
+    2       for (i = 0; i < n; i++) {
+    3           sum = 0.0;
+    4           for (k = 0; k < n; k++)
+    5               sum += A[i][k]*B[k][j];
+    6           C[i][j] += sum;
+    7   }
+
+    (c) Version jki
+
+    1 for (j = 0; j < n; j++)
+    2   for (k = 0; k < n; k++) {
+    3       r = B[k][j];
+    4       for (i = 0; i < n; i++)
+    5           C[i][j] += A[i][k]*r;
+    6   }
+
+    (d) Version kji
+
+    1 for (k = 0; k < n; k++)
+    2   for (j = 0; j < n; j++) {
+    3       r = B[k][j];
+    4       for (i = 0; i < n; i++)
+    5           C[i][j] += A[i][k]*r;
+    6   }
+
+    (e) Version kij
+
+    1 for (k = 0; k < n; k++)
+    2   for (i = 0; i < n; i++) {
+    3       r = A[i][k];
+    4       for (j = 0; j < n; j++)
+    5           C[i][j] += r*B[k][j];
+    6   }
+
+    (f) Version ikj
+
+    1 for (i = 0; i < n; i++)
+    2   for (k = 0; k < n; k++) {
+    3       r = A[i][k];
+    4       for (j = 0; j < n; j++)
+    5           C[i][j] += r*B[k][j];
+    6   }
+
+    
+    Matrix multiply                         Per iteration
+    version (class)     Loads       Stores      A misses        B misses        C misses        Total misses
+    ijk & jik (AB)      2           0           0.25            1.0             1.0             1.25
+    jki & kji (AC)      2           1           1.0             0               1.0             2
+    kij & ikj (BC)      2           1           0.0             0.25            0.25            0.5
+
+    
+    Exploiting locality in programs
+
+    As we have seen, the memory system is organized as hierarchy of storage devices, with smaller, faster devices
+    toward the top and larger, slower devices toward bottom. Because of this hierarchy, the effective rate that a program
+    can access memory locations is not characterized by a single number. Rather, it is a wildly varying function of program 
+    locality (what we have dubbed the memory mountain) that can vary by orders of magnitude. Programs with good locality
+    access most of their data from fast cache memories. Programs with poor locality access most of their data from the 
+    relatively slow DRAM main memory.
+
+    Programmers who understand the nature of the memory hierarchy can exploit this understanding to write more efficient 
+    programs, regardless of the specific memory system organization. In particular, we recommend the following techniques:
+
+    *   Focus your attention on the inner loops, where the bulk of the computations
+        and memory accesses occur.
+    *   Try to maximize the spatial locality in your programs by reading data objects
+        sequentially, with stride 1, in the order they are stored in memory.
+    *   Try to maximize the temporal locality in your programs by using a data object
+        as often as possible once it has been read from memory.
+
+    
